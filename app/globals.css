@@ -1,0 +1,321 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@1,6..72,500&display=swap");
+
+:root {
+  --ink: #26352c;
+  --muted: #70776f;
+  --paper: #f4f0e6;
+  --cream: #fbf8f0;
+  --sage: #a7bd9e;
+  --sage-dark: #6b876d;
+  --coral: #e2765f;
+  --coral-dark: #c85845;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 8% 10%, rgba(255, 255, 255, 0.85), transparent 28rem),
+    radial-gradient(circle at 92% 82%, rgba(167, 189, 158, 0.22), transparent 30rem),
+    var(--paper);
+  font-family: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-shell {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+  padding:
+    max(22px, env(safe-area-inset-top))
+    max(22px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom))
+    max(22px, env(safe-area-inset-left));
+  isolation: isolate;
+}
+
+.home-shell::before,
+.home-shell::after {
+  position: absolute;
+  z-index: -1;
+  border: 1px solid rgba(38, 53, 44, 0.07);
+  border-radius: 999px;
+  content: "";
+}
+
+.home-shell::before {
+  width: 28rem;
+  height: 28rem;
+  top: -20rem;
+  right: -11rem;
+}
+
+.home-shell::after {
+  width: 20rem;
+  height: 20rem;
+  bottom: -15rem;
+  left: -8rem;
+}
+
+.grain {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: 0.28;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.10'/%3E%3C/svg%3E");
+}
+
+.topbar {
+  display: flex;
+  width: min(100%, 70rem);
+  margin: 0 auto;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  color: var(--ink);
+  font-size: 1.65rem;
+  font-weight: 600;
+  letter-spacing: -0.09em;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.brand span {
+  color: var(--coral);
+}
+
+.locale-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(38, 53, 44, 0.1);
+  border-radius: 999px;
+  background: rgba(251, 248, 240, 0.58);
+  color: #59645b;
+  font-size: 0.72rem;
+  font-weight: 500;
+  backdrop-filter: blur(12px);
+}
+
+.conversation-card {
+  display: flex;
+  width: min(100%, 48rem);
+  margin: auto;
+  padding: 2.2rem 0 1.5rem;
+  align-items: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+.eyebrow {
+  margin-bottom: 1.1rem;
+  color: var(--sage-dark);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.19em;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.6rem, 9vw, 5.8rem);
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 0.96;
+}
+
+h1 em {
+  color: var(--coral);
+  font-family: "Newsreader", Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.045em;
+}
+
+.intro {
+  max-width: 29rem;
+  margin: 1.25rem auto 0;
+  color: var(--muted);
+  font-size: clamp(0.95rem, 3vw, 1.08rem);
+  line-height: 1.55;
+}
+
+.voice-stage {
+  position: relative;
+  display: grid;
+  width: 11.5rem;
+  height: 11.5rem;
+  margin: clamp(2rem, 6vh, 3.5rem) 0 0.5rem;
+  place-items: center;
+}
+
+.voice-ring {
+  position: absolute;
+  border: 1px solid rgba(107, 135, 109, 0.2);
+  border-radius: 50%;
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+
+.voice-ring--outer {
+  inset: 0;
+}
+
+.voice-ring--inner {
+  inset: 1.05rem;
+  background: rgba(167, 189, 158, 0.08);
+}
+
+.voice-button {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: 6.8rem;
+  height: 6.8rem;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #fffaf1;
+  background: var(--coral);
+  box-shadow:
+    0 1.2rem 2.8rem rgba(200, 88, 69, 0.23),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+  transition: background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.voice-button:active {
+  transform: scale(0.95);
+}
+
+.voice-button:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 5px;
+}
+
+.voice-button svg {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.voice-stage--connecting .voice-button,
+.voice-stage--connected .voice-button {
+  background: var(--sage-dark);
+  box-shadow: 0 1.2rem 2.8rem rgba(75, 104, 78, 0.24);
+}
+
+.voice-stage--connecting .voice-ring--inner,
+.voice-stage--connected .voice-ring--inner {
+  animation: breathe 2.2s ease-out infinite;
+}
+
+.voice-stage--connected .voice-ring--outer {
+  animation: breathe 2.2s 0.55s ease-out infinite;
+}
+
+.voice-stage--error .voice-button {
+  box-shadow: 0 1.2rem 2.8rem rgba(200, 88, 69, 0.15);
+}
+
+@keyframes breathe {
+  0% {
+    opacity: 0.75;
+    transform: scale(0.86);
+  }
+  75%,
+  100% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
+.session-copy {
+  min-height: 3.2rem;
+}
+
+.session-action {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.session-status {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  color: #858a84;
+  font-size: 0.65rem;
+  text-align: center;
+}
+
+.privacy-dot {
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 50%;
+  background: var(--sage);
+  box-shadow: 0 0 0 3px rgba(167, 189, 158, 0.17);
+}
+
+@media (max-height: 700px) {
+  .conversation-card {
+    padding-top: 1.25rem;
+  }
+
+  .voice-stage {
+    width: 9.4rem;
+    height: 9.4rem;
+    margin-top: 1.25rem;
+  }
+
+  .voice-button {
+    width: 5.7rem;
+    height: 5.7rem;
+  }
+}
+
+@media (min-width: 700px) {
+  .home-shell {
+    padding-inline: 3rem;
+  }
+
+  .locale-pill {
+    font-size: 0.78rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
