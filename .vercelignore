@@ -1,6 +1,10 @@
-.env
-.env.local
-.env.*.local
+.env*
 node_modules
 .next
 *.tsbuildinfo
+.git
+.DS_Store
+*.pem
+*.key
+*.p12
+*.pfx

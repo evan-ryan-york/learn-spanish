@@ -1,43 +1,45 @@
 # Rato
 
-A tiny, mobile-first Spanish conversation app using the OpenAI Realtime API over WebRTC.
+A mobile-first web app for natural Mexican Spanish conversation practice. It uses the OpenAI Realtime API and WebRTC for low-latency, speech-to-speech conversations.
 
-## Run it locally
+[Try the deployed app](https://learn-spanish-nu.vercel.app)
 
-1. Install dependencies:
+## What it does
 
-   ```bash
-   npm install
-   ```
+- Starts a Spanish conversation with one tap.
+- Adapts its vocabulary and pace to the speaker.
+- Uses short, natural turns and everyday Mexican Spanish.
+- Runs as an installable web app on desktop and mobile.
+- Sends live audio directly between the browser and OpenAI over WebRTC.
 
-2. Create your local environment file:
+## Local development
 
-   ```bash
-   cp .env.example .env.local
-   ```
+Requirements: Node.js 20+ and pnpm 10+.
 
-3. Put your OpenAI API key in `.env.local`, then start the app:
+```bash
+pnpm install
+cp .env.example .env.local
+pnpm dev
+```
 
-   ```bash
-   npm run dev
-   ```
+Add your OpenAI API key to `.env.local`, then open [http://localhost:3019](http://localhost:3019).
 
-4. Open [http://localhost:3000](http://localhost:3000) and tap the microphone.
+## Environment variables
 
-The API key is only read by the server route. Live audio travels directly between the browser and OpenAI over WebRTC.
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | Yes | Creates Realtime sessions from the server. |
+| `OPENAI_REALTIME_MODEL` | No | Defaults to `gpt-realtime-2.1`. |
+| `OPENAI_REALTIME_VOICE` | No | Defaults to `marin`. |
 
-## Try it on an iPhone
+Never commit `.env.local` or an API key. The standard OpenAI key remains on the server and is not sent to the browser.
 
-Microphone access requires a secure context. Deploy the app to an HTTPS host such as Vercel before testing it on your phone; opening a plain `http://` LAN address will not be enough. In Safari, use **Share → Add to Home Screen** to launch it like an app.
+## Testing on a phone
 
-This first version is meant to validate foreground audio and AirPods behavior. Locked-screen and background microphone behavior still needs to be tested on the target iPhone.
+Microphone access requires HTTPS. Open the deployed app in Safari, allow microphone access, and optionally use **Share → Add to Home Screen**. Foreground audio is working; locked-screen and extended background behavior still needs device testing.
 
-## Configuration
+## Security
 
-- `OPENAI_API_KEY` — required and server-only.
-- `OPENAI_REALTIME_MODEL` — defaults to `gpt-realtime-2.1`.
-- `OPENAI_REALTIME_VOICE` — defaults to `marin`.
+The current `/api/session` endpoint has no user authentication or rate limiting. The deployed app is suitable for personal testing, but those controls should be added before sharing it broadly because calls consume the configured OpenAI account's balance.
 
-The `/api/session` route is intentionally minimal and has no user authentication. Add authentication and rate limiting before exposing it as a public product.
-
-Implementation follows the [official OpenAI WebRTC guide](https://developers.openai.com/api/docs/guides/realtime-webrtc).
+The Realtime implementation follows the [official OpenAI WebRTC guide](https://developers.openai.com/api/docs/guides/realtime-webrtc).
