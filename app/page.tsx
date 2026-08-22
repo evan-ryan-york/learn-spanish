@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RestaurantScenarioCard from "./restaurant-scenario-card";
 
 export default function Home() {
   return (
@@ -27,28 +28,7 @@ export default function Home() {
         </p>
 
         <div className="scenario-grid">
-          <Link className="scenario-link" href="/restaurant">
-            <article className="scenario-card">
-              <div className="scenario-art" aria-hidden="true">
-                <RestaurantIcon />
-              </div>
-              <div className="scenario-content">
-                <div className="scenario-meta">
-                  <span>Principiante</span>
-                  <span>Conversación libre</span>
-                </div>
-                <div className="scenario-heading">
-                  <h2>Restaurante</h2>
-                  <span className="scenario-arrow" aria-hidden="true">
-                    →
-                  </span>
-                </div>
-                <p>
-                  Pide una mesa, pregunta por los especiales y ordena algo para comer.
-                </p>
-              </div>
-            </article>
-          </Link>
+          <RestaurantScenarioCard />
         </div>
       </section>
 
@@ -57,33 +37,5 @@ export default function Home() {
         Cada conversación se adapta a tu ritmo
       </footer>
     </main>
-  );
-}
-
-function RestaurantIcon() {
-  return (
-    <svg viewBox="0 0 96 96" role="img" aria-label="Restaurante">
-      <path
-        d="M28 56h40M34 56c0-11 6-20 14-20s14 9 14 20M48 36v-5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-      <path
-        d="M25 62h46"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-      <path
-        d="M19 32v16c0 4 3 7 7 7M26 32v31M74 32v31M69 32v12c0 3 2 5 5 5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-    </svg>
   );
 }

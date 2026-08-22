@@ -1,9 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
+import {
+  loadPracticeSessions,
+  savePracticeSession,
+  type DraftPracticeSession,
+  type PracticeSession,
+  type TranscriptRole,
+} from "../session-history";
+import { parseSpanishLevel } from "../spanish-level";
 
 type SessionState = "idle" | "connecting" | "connected" | "error";
+
+type RealtimeMessage = {
+  type?: string;
+  item_id?: string;
+  transcript?: string;
+  response?: { id?: string };
+};
+
+type TranslationResponse = {
+  translations?: Array<{
+    id: string;
+    translation: string;
+  }>;
+  error?: string;
+};
 
 const statusCopy: Record<Exclude<SessionState, "error">, string> = {
   idle: "Cuando quieras, entramos.",
@@ -11,13 +34,164 @@ const statusCopy: Record<Exclude<SessionState, "error">, string> = {
   connected: "Te escucho.",
 };
 
-export default function Restaurant() {
+export default function Restaurant({
+  searchParams,
+}: {
+  searchParams: Promise<{ level?: string | string[] }>;
+}) {
+  const level = parseSpanishLevel(use(searchParams).level);
   const [sessionState, setSessionState] = useState<SessionState>("idle");
   const [status, setStatus] = useState(statusCopy.idle);
+  const [pastSessions, setPastSessions] = useState<PracticeSession[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [translationFailures, setTranslationFailures] = useState<Set<string>>(
+    () => new Set(),
+  );
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const currentSessionRef = useRef<DraftPracticeSession | null>(null);
+  const translationRequestsRef = useRef<Set<string>>(new Set());
+
+  const addPendingTurn = useCallback((role: TranscriptRole, id?: string) => {
+    currentSessionRef.current?.turns.push({
+      id: id ?? createId(role),
+      role,
+      text: "",
+      createdAt: new Date().toISOString(),
+    });
+  }, []);
+
+  const completePendingTurn = useCallback(
+    (role: TranscriptRole, transcript: string | undefined, id?: string) => {
+      const currentSession = currentSessionRef.current;
+      if (!currentSession) return;
+
+      const text = transcript?.trim() ?? "";
+      const pendingIndex = currentSession.turns.findIndex(
+        (turn) => turn.role === role && turn.text === "",
+      );
+
+      if (!text) {
+        if (pendingIndex >= 0) currentSession.turns.splice(pendingIndex, 1);
+        return;
+      }
+
+      if (pendingIndex >= 0) {
+        currentSession.turns[pendingIndex] = {
+          ...currentSession.turns[pendingIndex],
+          id: id ?? currentSession.turns[pendingIndex].id,
+          text,
+        };
+        return;
+      }
+
+      currentSession.turns.push({
+        id: id ?? createId(role),
+        role,
+        text,
+        createdAt: new Date().toISOString(),
+      });
+    },
+    [],
+  );
+
+  const translateAndStoreSession = useCallback(async (session: PracticeSession) => {
+    const untranslatedTurns = session.turns.filter(
+      (turn) => !turn.translation?.trim(),
+    );
+
+    if (
+      untranslatedTurns.length === 0 ||
+      translationRequestsRef.current.has(session.id)
+    ) {
+      return;
+    }
+
+    translationRequestsRef.current.add(session.id);
+    setTranslationFailures((failures) => {
+      const nextFailures = new Set(failures);
+      nextFailures.delete(session.id);
+      return nextFailures;
+    });
+
+    try {
+      const response = await fetch("/api/translate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          turns: untranslatedTurns.map((turn) => ({
+            id: turn.id,
+            text: turn.text,
+          })),
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as TranslationResponse | null;
+
+      if (!response.ok || !payload?.translations) {
+        throw new Error(payload?.error ?? "No se pudo traducir la transcripción.");
+      }
+
+      const translations = new Map(
+        payload.translations.map((translation) => [
+          translation.id,
+          translation.translation,
+        ]),
+      );
+
+      if (translations.size !== untranslatedTurns.length) {
+        throw new Error("La traducción está incompleta.");
+      }
+
+      const translatedSession = {
+        ...session,
+        turns: session.turns.map((turn) => ({
+          ...turn,
+          translation: turn.translation ?? translations.get(turn.id),
+        })),
+      };
+      const savedSessions = savePracticeSession(translatedSession);
+      setPastSessions(savedSessions);
+    } catch (error) {
+      console.error("Transcript translation error:", error);
+      setTranslationFailures((failures) => new Set(failures).add(session.id));
+    } finally {
+      translationRequestsRef.current.delete(session.id);
+    }
+  }, []);
+
+  const finalizeSession = useCallback(
+    (updateHistory = true) => {
+      const draft = currentSessionRef.current;
+      currentSessionRef.current = null;
+
+      if (!draft) return;
+
+      const turns = draft.turns
+        .map((turn) => ({ ...turn, text: turn.text.trim() }))
+        .filter((turn) => turn.text.length > 0);
+      const hasUserTurn = turns.some((turn) => turn.role === "user");
+      const hasAssistantTurn = turns.some((turn) => turn.role === "assistant");
+
+      if (!hasUserTurn || !hasAssistantTurn) return;
+
+      const completedSession: PracticeSession = {
+        ...draft,
+        endedAt: new Date().toISOString(),
+        turns,
+      };
+      const savedSessions = savePracticeSession(completedSession);
+
+      if (updateHistory) {
+        setPastSessions(savedSessions);
+        void translateAndStoreSession(completedSession);
+      }
+    },
+    [translateAndStoreSession],
+  );
 
   const releaseConnection = useCallback(() => {
     dataChannelRef.current?.close();
@@ -37,16 +211,24 @@ export default function Restaurant() {
   }, []);
 
   const stopConversation = useCallback(() => {
+    finalizeSession();
     releaseConnection();
     setSessionState("idle");
     setStatus("Hasta la próxima.");
-  }, [releaseConnection]);
+  }, [finalizeSession, releaseConnection]);
 
   const startConversation = useCallback(async () => {
     if (sessionState === "connecting" || sessionState === "connected") return;
 
     setSessionState("connecting");
     setStatus(statusCopy.connecting);
+    currentSessionRef.current = {
+      id: createId("session"),
+      scenario: "restaurant",
+      level,
+      startedAt: new Date().toISOString(),
+      turns: [],
+    };
 
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
@@ -81,6 +263,7 @@ export default function Restaurant() {
         if (peerConnection.connectionState === "failed") {
           setSessionState("error");
           setStatus("Se perdió la conexión. Toca para intentarlo otra vez.");
+          finalizeSession();
           releaseConnection();
         }
       };
@@ -106,7 +289,7 @@ export default function Restaurant() {
             type: "response.create",
             response: {
               instructions:
-                "Empieza ya como una persona que trabaja en un café mexicano. Saluda brevemente, habla despacio y pregunta si el pedido es para comer aquí o para llevar.",
+                `Empieza ya como una persona que trabaja en un café mexicano. Saluda brevemente y pregunta si el pedido es para comer aquí o para llevar. Mantén exactamente el ritmo y la complejidad del nivel ${level} configurado para la sesión.`,
             },
           }),
         );
@@ -114,14 +297,26 @@ export default function Restaurant() {
 
       dataChannel.addEventListener("message", (event) => {
         try {
-          const message = JSON.parse(event.data) as { type?: string };
+          const message = JSON.parse(event.data) as RealtimeMessage;
 
           if (message.type === "input_audio_buffer.speech_started") {
+            addPendingTurn("user", message.item_id);
             setStatus("Te escucho…");
+          } else if (
+            message.type === "conversation.item.input_audio_transcription.completed"
+          ) {
+            completePendingTurn("user", message.transcript, message.item_id);
+          } else if (
+            message.type === "conversation.item.input_audio_transcription.failed"
+          ) {
+            completePendingTurn("user", undefined, message.item_id);
           } else if (message.type === "input_audio_buffer.speech_stopped") {
             setStatus("Pensando…");
           } else if (message.type === "response.created") {
+            addPendingTurn("assistant", message.response?.id);
             setStatus("Pensando…");
+          } else if (message.type === "response.output_audio_transcript.done") {
+            completePendingTurn("assistant", message.transcript, message.item_id);
           } else if (
             message.type === "response.output_audio.delta" ||
             message.type === "response.audio.delta"
@@ -140,7 +335,7 @@ export default function Restaurant() {
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
 
-      const response = await fetch("/api/session", {
+      const response = await fetch(`/api/session?level=${level}`, {
         method: "POST",
         body: offer.sdp,
         headers: {
@@ -158,6 +353,7 @@ export default function Restaurant() {
         sdp: await response.text(),
       });
     } catch (error) {
+      finalizeSession();
       releaseConnection();
       setSessionState("error");
 
@@ -167,14 +363,32 @@ export default function Restaurant() {
         setStatus(error instanceof Error ? error.message : "No se pudo empezar.");
       }
     }
-  }, [releaseConnection, sessionState]);
+  }, [
+    addPendingTurn,
+    completePendingTurn,
+    finalizeSession,
+    level,
+    releaseConnection,
+    sessionState,
+  ]);
 
-  useEffect(() => releaseConnection, [releaseConnection]);
+  useEffect(() => {
+    setPastSessions(loadPracticeSessions("restaurant"));
+  }, []);
+
+  useEffect(
+    () => () => {
+      finalizeSession(false);
+      releaseConnection();
+    },
+    [finalizeSession, releaseConnection],
+  );
 
   const isActive = sessionState === "connecting" || sessionState === "connected";
+  const selectedSession = pastSessions.find((session) => session.id === selectedSessionId);
 
   return (
-    <main className="home-shell notranslate" translate="no">
+    <main className="home-shell restaurant-shell notranslate" translate="no">
       <div className="grain" aria-hidden="true" />
 
       <header className="topbar">
@@ -191,7 +405,7 @@ export default function Restaurant() {
         <Link className="back-link" href="/">
           ← Escenarios
         </Link>
-        <div className="eyebrow">EN EL RESTAURANTE</div>
+        <div className="eyebrow">EN EL RESTAURANTE · NIVEL {level}</div>
         <h1 id="page-title">
           Tu mesa está
           <br />
@@ -223,12 +437,114 @@ export default function Restaurant() {
         </div>
       </section>
 
+      <section className="session-history" aria-labelledby="session-history-title">
+        <div className="session-history-heading">
+          <div className="eyebrow">TUS PRÁCTICAS</div>
+          <h2 id="session-history-title">Sesiones anteriores</h2>
+          <p>Guardadas en este dispositivo.</p>
+        </div>
+
+        {pastSessions.length === 0 ? (
+          <div className="session-history-empty">
+            Las sesiones aparecerán aquí después de que tú y Rato hayan hablado.
+          </div>
+        ) : (
+          <ul className="session-history-list">
+            {pastSessions.map((session) => {
+              const isSelected = session.id === selectedSessionId;
+              const transcriptId = `transcript-${session.id}`;
+              const preview =
+                session.turns.find((turn) => turn.role === "user")?.text ??
+                session.turns[0]?.text;
+
+              return (
+                <li key={session.id}>
+                  <button
+                    className="session-history-button"
+                    type="button"
+                    onClick={() => {
+                      setSelectedSessionId(isSelected ? null : session.id);
+                      if (!isSelected) void translateAndStoreSession(session);
+                    }}
+                    aria-expanded={isSelected}
+                    aria-controls={isSelected ? transcriptId : undefined}
+                  >
+                    <span className="session-history-meta">
+                      <span>{formatSessionDate(session.startedAt)}</span>
+                      <span>Nivel {session.level}</span>
+                      <span>{formatSessionDuration(session.startedAt, session.endedAt)}</span>
+                    </span>
+                    <span className="session-history-preview">{preview}</span>
+                    <span className="session-history-arrow" aria-hidden="true">
+                      {isSelected ? "−" : "+"}
+                    </span>
+                  </button>
+
+                  {isSelected && selectedSession ? (
+                    <article className="transcript" id={transcriptId}>
+                      <div className="transcript-heading">
+                        <h3>Transcripción</h3>
+                        <span>{selectedSession.turns.length} turnos</span>
+                      </div>
+                      <ol>
+                        {selectedSession.turns.map((turn) => (
+                          <li className={`transcript-turn transcript-turn--${turn.role}`} key={turn.id}>
+                            <span>{turn.role === "user" ? "Tú" : "Rato"}</span>
+                            <div className="transcript-bubble">
+                              <p className="transcript-original">{turn.text}</p>
+                              <div className="transcript-translation" lang="en">
+                                <span>English</span>
+                                <p>
+                                  {turn.translation ??
+                                    (translationFailures.has(selectedSession.id)
+                                      ? "Translation unavailable. Close and reopen this session to retry."
+                                      : "Translating…")}
+                                </p>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ol>
+                    </article>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
       <footer>
         <span className="privacy-dot" aria-hidden="true" />
-        El micrófono solo está activo durante la conversación
+        El micrófono solo está activo durante la conversación · Historial local
       </footer>
     </main>
   );
+}
+
+function createId(prefix: string) {
+  const uniquePart =
+    typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  return `${prefix}-${uniquePart}`;
+}
+
+function formatSessionDate(value: string) {
+  return new Intl.DateTimeFormat("es-MX", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function formatSessionDuration(startedAt: string, endedAt: string) {
+  const elapsedMinutes = Math.max(
+    1,
+    Math.round((Date.parse(endedAt) - Date.parse(startedAt)) / 60_000),
+  );
+
+  return `${elapsedMinutes} min`;
 }
 
 function MicrophoneIcon() {

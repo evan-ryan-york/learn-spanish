@@ -28,9 +28,11 @@ Add your OpenAI API key to `.env.local`, then open [http://localhost:3019](http:
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `OPENAI_API_KEY` | Yes | Creates Realtime sessions from the server. |
+| `OPENAI_API_KEY` | Yes | Creates Realtime sessions and transcript translations from the server. |
 | `OPENAI_REALTIME_MODEL` | No | Defaults to `gpt-realtime-2.1`. |
 | `OPENAI_REALTIME_VOICE` | No | Defaults to `marin`. |
+| `OPENAI_TRANSCRIPTION_MODEL` | No | Defaults to `gpt-4o-mini-transcribe` for user transcripts. |
+| `OPENAI_TRANSLATION_MODEL` | No | Defaults to `gpt-4o-mini` for English transcript translations. |
 
 Never commit `.env.local` or an API key. The standard OpenAI key remains on the server and is not sent to the browser.
 
@@ -38,8 +40,10 @@ Never commit `.env.local` or an API key. The standard OpenAI key remains on the 
 
 Microphone access requires HTTPS. Open the deployed app in Safari, allow microphone access, and optionally use **Share → Add to Home Screen**. Foreground audio is working; locked-screen and extended background behavior still needs device testing.
 
+Completed conversation transcripts and their English translations are stored locally in the browser on the device where the conversation took place.
+
 ## Security
 
-The current `/api/session` endpoint has no user authentication or rate limiting. The deployed app is suitable for personal testing, but those controls should be added before sharing it broadly because calls consume the configured OpenAI account's balance.
+The current `/api/session` and `/api/translate` endpoints have no user authentication or rate limiting. The deployed app is suitable for personal testing, but those controls should be added before sharing it broadly because calls consume the configured OpenAI account's balance.
 
 The Realtime implementation follows the [official OpenAI WebRTC guide](https://developers.openai.com/api/docs/guides/realtime-webrtc).

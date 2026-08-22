@@ -1,0 +1,9 @@
+approval_policy = "never"
+default_permissions = ":danger-full-access"
+
+[mcp_servers.playwright-test]
+command = "npx"
+args = [
+    "playwright",
+    "run-test-mcp-server",
+]
