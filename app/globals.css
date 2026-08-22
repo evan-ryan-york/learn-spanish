@@ -42,7 +42,7 @@ a {
   min-height: 100vh;
   min-height: 100dvh;
   grid-template-rows: auto 1fr auto;
-  overflow: hidden;
+  overflow-x: hidden;
   padding:
     max(22px, env(safe-area-inset-top))
     max(22px, env(safe-area-inset-right))
@@ -126,6 +126,171 @@ a {
   align-items: center;
   flex-direction: column;
   text-align: center;
+}
+
+.scenario-picker {
+  display: flex;
+  width: min(100%, 62rem);
+  margin: auto;
+  padding: clamp(3rem, 8vh, 5.5rem) 0;
+  align-items: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+.scenario-grid {
+  display: grid;
+  width: min(100%, 45rem);
+  margin-top: clamp(2.2rem, 6vh, 4rem);
+}
+
+.scenario-link {
+  border-radius: 2rem;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+}
+
+.scenario-link:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 5px;
+}
+
+.scenario-card {
+  display: grid;
+  min-height: 15rem;
+  grid-template-columns: minmax(12rem, 0.85fr) minmax(16rem, 1.15fr);
+  overflow: hidden;
+  border: 1px solid rgba(38, 53, 44, 0.1);
+  border-radius: 2rem;
+  background: rgba(251, 248, 240, 0.74);
+  box-shadow: 0 1.6rem 4rem rgba(55, 68, 58, 0.08);
+  transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+}
+
+.scenario-link:hover .scenario-card {
+  border-color: rgba(38, 53, 44, 0.17);
+  box-shadow: 0 1.9rem 4.5rem rgba(55, 68, 58, 0.12);
+  transform: translateY(-4px);
+}
+
+.scenario-art {
+  position: relative;
+  display: grid;
+  min-height: 15rem;
+  place-items: center;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 50% 44%, rgba(251, 248, 240, 0.85) 0 28%, transparent 29%),
+    var(--sage);
+}
+
+.scenario-art::before,
+.scenario-art::after {
+  position: absolute;
+  border: 1px solid rgba(38, 53, 44, 0.1);
+  border-radius: 50%;
+  content: "";
+}
+
+.scenario-art::before {
+  width: 10rem;
+  height: 10rem;
+}
+
+.scenario-art::after {
+  width: 7rem;
+  height: 7rem;
+}
+
+.scenario-art svg {
+  z-index: 1;
+  width: 6rem;
+  height: 6rem;
+}
+
+.scenario-content {
+  display: flex;
+  padding: clamp(1.7rem, 5vw, 2.6rem);
+  justify-content: center;
+  flex-direction: column;
+}
+
+.scenario-meta {
+  display: flex;
+  margin-bottom: 1.2rem;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.scenario-meta span {
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  color: #59645b;
+  background: rgba(167, 189, 158, 0.18);
+  font-size: 0.61rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.scenario-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.scenario-heading h2 {
+  margin: 0;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.scenario-arrow {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--cream);
+  background: var(--coral);
+  font-size: 1.2rem;
+  transition: transform 200ms ease;
+}
+
+.scenario-link:hover .scenario-arrow {
+  transform: translateX(3px);
+}
+
+.scenario-content p {
+  margin: 0.9rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.back-link {
+  margin-bottom: 1.1rem;
+  color: var(--sage-dark);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.back-link:hover {
+  color: var(--ink);
+}
+
+.back-link:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
 }
 
 .eyebrow {
@@ -297,6 +462,39 @@ footer {
   .voice-button {
     width: 5.7rem;
     height: 5.7rem;
+  }
+}
+
+@media (max-width: 620px) {
+  .scenario-picker {
+    padding-block: 3rem;
+  }
+
+  .scenario-card {
+    grid-template-columns: 1fr;
+  }
+
+  .scenario-art {
+    min-height: 10.5rem;
+  }
+
+  .scenario-art::before {
+    width: 8.5rem;
+    height: 8.5rem;
+  }
+
+  .scenario-art::after {
+    width: 6rem;
+    height: 6rem;
+  }
+
+  .scenario-art svg {
+    width: 5rem;
+    height: 5rem;
+  }
+
+  .scenario-content {
+    padding: 1.6rem;
   }
 }
 
