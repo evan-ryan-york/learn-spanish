@@ -542,62 +542,6 @@ h1 em {
   box-shadow: 0 0.75rem 2rem rgba(55, 68, 58, 0.04);
 }
 
-.session-sync-form {
-  display: grid;
-  gap: 0.55rem;
-}
-
-.session-sync-form > label {
-  color: var(--ink);
-  font-size: 0.72rem;
-  font-weight: 600;
-}
-
-.session-sync-form > div {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.session-sync-form input {
-  width: 100%;
-  min-width: 0;
-  padding: 0.72rem 0.8rem;
-  border: 1px solid rgba(38, 53, 44, 0.14);
-  border-radius: 0.75rem;
-  color: var(--ink);
-  background: var(--cream);
-  font: inherit;
-  font-size: 0.82rem;
-}
-
-.session-sync-form input:focus-visible {
-  outline: 2px solid var(--sage-dark);
-  outline-offset: 1px;
-}
-
-.session-sync-form button,
-.session-sync-account button {
-  min-height: 2.65rem;
-  padding: 0.65rem 0.85rem;
-  border: 0;
-  border-radius: 0.75rem;
-  color: white;
-  background: var(--ink);
-  font: inherit;
-  font-size: 0.7rem;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.session-sync-form p {
-  min-height: 1rem;
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.65rem;
-  line-height: 1.45;
-}
-
 .session-sync-account {
   display: flex;
   align-items: center;

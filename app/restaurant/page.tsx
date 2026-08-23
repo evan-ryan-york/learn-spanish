@@ -1,6 +1,5 @@
 "use client";
 
-import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -19,7 +18,7 @@ import { parseSpanishLevel } from "../spanish-level";
 import { getSupabaseBrowserClient } from "../supabase";
 
 type SessionState = "idle" | "connecting" | "connected" | "error";
-type SyncState = "signed-out" | "syncing" | "synced" | "error" | "unavailable";
+type SyncState = "syncing" | "synced" | "error" | "unavailable";
 
 type RealtimeMessage = {
   type?: string;
@@ -52,10 +51,7 @@ export default function Restaurant({
   const [status, setStatus] = useState(statusCopy.idle);
   const [pastSessions, setPastSessions] = useState<PracticeSession[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [authUser, setAuthUser] = useState<User | null>(null);
-  const [email, setEmail] = useState("");
-  const [authMessage, setAuthMessage] = useState("");
-  const [syncState, setSyncState] = useState<SyncState>("signed-out");
+  const [syncState, setSyncState] = useState<SyncState>("syncing");
   const [translationFailures, setTranslationFailures] = useState<Set<string>>(
     () => new Set(),
   );
@@ -65,8 +61,7 @@ export default function Restaurant({
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const currentSessionRef = useRef<DraftPracticeSession | null>(null);
   const translationRequestsRef = useRef<Set<string>>(new Set());
-  const userRef = useRef<User | null>(null);
-  const syncingUserRef = useRef<string | null>(null);
+  const syncingRef = useRef(false);
 
   const addPendingTurn = useCallback((role: TranscriptRole, id?: string) => {
     currentSessionRef.current?.turns.push({
@@ -117,9 +112,9 @@ export default function Restaurant({
       if (updateHistory) setPastSessions(savedSessions);
 
       const client = getSupabaseBrowserClient();
-      if (client && session.ownerId) {
+      if (client) {
         setSyncState("syncing");
-        void saveCloudPracticeSession(client, session.ownerId, session)
+        void saveCloudPracticeSession(client, session)
           .then(() => setSyncState("synced"))
           .catch((error) => {
             console.error("Practice session cloud save error:", error);
@@ -214,7 +209,6 @@ export default function Restaurant({
 
       const completedSession: PracticeSession = {
         ...draft,
-        ownerId: userRef.current?.id,
         endedAt: new Date().toISOString(),
         turns,
       };
@@ -227,33 +221,28 @@ export default function Restaurant({
     [persistSession, translateAndStoreSession],
   );
 
-  const synchronizeUser = useCallback(async (user: User) => {
+  const synchronizeSessions = useCallback(async () => {
     const client = getSupabaseBrowserClient();
-    if (!client || syncingUserRef.current === user.id) return;
+    if (!client || syncingRef.current) return;
 
-    syncingUserRef.current = user.id;
+    syncingRef.current = true;
     setSyncState("syncing");
 
     try {
-      const localSessions = loadPracticeSessions("restaurant", user.id);
+      const localSessions = loadPracticeSessions("restaurant");
       const cloudSessions = await syncPracticeSessions(
         client,
-        user.id,
         "restaurant",
         localSessions,
       );
-      const sessions = replacePracticeSessions(
-        "restaurant",
-        user.id,
-        cloudSessions,
-      );
-      setPastSessions(sessions);
+      setPastSessions(replacePracticeSessions("restaurant", cloudSessions));
       setSyncState("synced");
     } catch (error) {
       console.error("Practice session sync error:", error);
+      setPastSessions(loadPracticeSessions("restaurant"));
       setSyncState("error");
     } finally {
-      syncingUserRef.current = null;
+      syncingRef.current = false;
     }
   }, []);
 
@@ -288,7 +277,6 @@ export default function Restaurant({
     setStatus(statusCopy.connecting);
     currentSessionRef.current = {
       id: createId("session"),
-      ownerId: userRef.current?.id,
       scenario: "restaurant",
       level,
       startedAt: new Date().toISOString(),
@@ -446,67 +434,9 @@ export default function Restaurant({
       return;
     }
 
-    let isActive = true;
+    void synchronizeSessions();
+  }, [synchronizeSessions]);
 
-    const applyUser = (user: User | null) => {
-      if (!isActive) return;
-
-      userRef.current = user;
-      setAuthUser(user);
-
-      if (user) {
-        void synchronizeUser(user);
-      } else {
-        setPastSessions(loadPracticeSessions("restaurant"));
-        setSyncState("signed-out");
-      }
-    };
-
-    void client.auth.getSession().then(({ data }) => applyUser(data.session?.user ?? null));
-    const {
-      data: { subscription },
-    } = client.auth.onAuthStateChange((_event, session) => {
-      applyUser(session?.user ?? null);
-    });
-
-    return () => {
-      isActive = false;
-      subscription.unsubscribe();
-    };
-  }, [synchronizeUser]);
-
-  const sendSignInLink = useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      const client = getSupabaseBrowserClient();
-      const normalizedEmail = email.trim();
-
-      if (!client || !normalizedEmail) return;
-
-      setAuthMessage("Enviando enlace…");
-      const { error } = await client.auth.signInWithOtp({
-        email: normalizedEmail,
-        options: {
-          emailRedirectTo: `${window.location.origin}/restaurant?level=${level}`,
-        },
-      });
-
-      setAuthMessage(
-        error
-          ? "No se pudo enviar el enlace. Inténtalo otra vez."
-          : "Revisa tu correo y abre el enlace para sincronizar.",
-      );
-    },
-    [email, level],
-  );
-
-  const signOut = useCallback(async () => {
-    const client = getSupabaseBrowserClient();
-    if (!client) return;
-
-    await client.auth.signOut();
-    setAuthMessage("");
-  }, []);
 
   useEffect(
     () => () => {
@@ -573,41 +503,14 @@ export default function Restaurant({
         <div className="session-history-heading">
           <div className="eyebrow">TUS PRÁCTICAS</div>
           <h2 id="session-history-title">Sesiones anteriores</h2>
-          <p>
-            {authUser
-              ? `Sincronizadas como ${authUser.email ?? "tu cuenta"}.`
-              : "Inicia sesión para verlas en todos tus dispositivos."}
-          </p>
+          <p>Se guardan aquí y en todos tus dispositivos.</p>
         </div>
 
         <div className="session-sync" aria-live="polite">
-          {authUser ? (
-            <div className="session-sync-account">
-              <span className={`session-sync-dot session-sync-dot--${syncState}`} />
-              <span>{formatSyncState(syncState)}</span>
-              <button type="button" onClick={signOut}>
-                Cerrar sesión
-              </button>
-            </div>
-          ) : (
-            <form className="session-sync-form" onSubmit={sendSignInLink}>
-              <label htmlFor="sync-email">Sincronizar sesiones</label>
-              <div>
-                <input
-                  id="sync-email"
-                  name="email"
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="tu@email.com"
-                  autoComplete="email"
-                  required
-                />
-                <button type="submit">Enviar enlace</button>
-              </div>
-              <p>{authMessage || "Sin contraseña. Usa el mismo correo en tu teléfono y laptop."}</p>
-            </form>
-          )}
+          <div className="session-sync-account">
+            <span className={`session-sync-dot session-sync-dot--${syncState}`} />
+            <span>{formatSyncState(syncState)}</span>
+          </div>
         </div>
 
         {pastSessions.length === 0 ? (
@@ -716,6 +619,7 @@ function formatSessionDuration(startedAt: string, endedAt: string) {
 function formatSyncState(state: SyncState) {
   if (state === "syncing") return "Sincronizando…";
   if (state === "error") return "No se pudo sincronizar";
+  if (state === "unavailable") return "Solo en este dispositivo";
   return "Sesiones sincronizadas";
 }
 
