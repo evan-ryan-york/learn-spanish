@@ -917,6 +917,57 @@ h1 em {
   cursor: default;
 }
 
+@media (min-width: 900px) {
+  .session-history {
+    width: min(100%, 60rem);
+  }
+
+  .transcript {
+    display: grid;
+    max-height: min(68vh, 40rem);
+    padding: 1.15rem;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 0 1.4rem;
+  }
+
+  .transcript-panel {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .transcript-chat {
+    display: flex;
+    min-height: 0;
+    margin-top: 0;
+    padding-top: 0;
+    padding-left: 1.4rem;
+    flex-direction: column;
+    border-top: 0;
+    border-left: 1px solid rgba(38, 53, 44, 0.09);
+  }
+
+  .transcript-chat-suggestions {
+    align-content: flex-start;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .transcript-chat-log {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block-end: 0.5rem;
+  }
+
+  .transcript-chat-composer {
+    flex: 0 0 auto;
+  }
+}
+
 footer {
   display: flex;
   align-items: center;

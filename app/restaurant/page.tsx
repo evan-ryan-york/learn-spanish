@@ -560,29 +560,34 @@ export default function Restaurant({
 
                   {isSelected && selectedSession ? (
                     <article className="transcript" id={transcriptId}>
-                      <div className="transcript-heading">
-                        <h3>Transcripción</h3>
-                        <span>{selectedSession.turns.length} turnos</span>
-                      </div>
-                      <ol>
-                        {selectedSession.turns.map((turn) => (
-                          <li className={`transcript-turn transcript-turn--${turn.role}`} key={turn.id}>
-                            <span>{turn.role === "user" ? "Tú" : "Rato"}</span>
-                            <div className="transcript-bubble">
-                              <p className="transcript-original">{turn.text}</p>
-                              <div className="transcript-translation" lang="en">
-                                <span>English</span>
-                                <p>
-                                  {turn.translation ??
-                                    (translationFailures.has(selectedSession.id)
-                                      ? "Translation unavailable. Close and reopen this session to retry."
-                                      : "Translating…")}
-                                </p>
+                      <div className="transcript-panel">
+                        <div className="transcript-heading">
+                          <h3>Transcripción</h3>
+                          <span>{selectedSession.turns.length} turnos</span>
+                        </div>
+                        <ol>
+                          {selectedSession.turns.map((turn) => (
+                            <li
+                              className={`transcript-turn transcript-turn--${turn.role}`}
+                              key={turn.id}
+                            >
+                              <span>{turn.role === "user" ? "Tú" : "Rato"}</span>
+                              <div className="transcript-bubble">
+                                <p className="transcript-original">{turn.text}</p>
+                                <div className="transcript-translation" lang="en">
+                                  <span>English</span>
+                                  <p>
+                                    {turn.translation ??
+                                      (translationFailures.has(selectedSession.id)
+                                        ? "Translation unavailable. Close and reopen this session to retry."
+                                        : "Translating…")}
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                          </li>
-                        ))}
-                      </ol>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
 
                       <TranscriptChat
                         session={selectedSession}

@@ -32,6 +32,7 @@ export default function TranscriptChat({
 }) {
   const [question, setQuestion] = useState("");
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const logRef = useRef<HTMLOListElement | null>(null);
   const isWaiting = messages.some((message) => message.status === "pending");
 
   useLayoutEffect(() => {
@@ -41,6 +42,11 @@ export default function TranscriptChat({
     input.style.height = "auto";
     input.style.height = `${input.scrollHeight}px`;
   }, [question]);
+
+  useLayoutEffect(() => {
+    const log = logRef.current;
+    if (log) log.scrollTop = log.scrollHeight;
+  }, [messages]);
 
   const ask = async (rawQuestion: string) => {
     const text = rawQuestion.trim();
@@ -119,7 +125,7 @@ export default function TranscriptChat({
           ))}
         </div>
       ) : (
-        <ol className="transcript-chat-log" lang="en">
+        <ol className="transcript-chat-log" lang="en" ref={logRef}>
           {messages.map((message) => (
             <li
               className={`transcript-chat-message transcript-chat-message--${message.role}`}
