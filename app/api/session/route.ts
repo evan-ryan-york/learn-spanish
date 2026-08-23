@@ -48,7 +48,7 @@ Puedes introducir palabras nuevas cuando el contexto las explique, y reutilízal
 };
 
 const LEVEL_AUDIO_SPEEDS: Record<SpanishLevel, number> = {
-  1: 0.7,
+  1: 0.8,
   2: 0.85,
   3: 0.95,
   4: 1,
