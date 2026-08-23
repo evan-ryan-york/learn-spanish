@@ -11,6 +11,7 @@ A mobile-first web app for natural Mexican Spanish conversation practice. It use
 - Uses short, natural turns and everyday Mexican Spanish.
 - Runs as an installable web app on desktop and mobile.
 - Sends live audio directly between the browser and OpenAI over WebRTC.
+- Keeps a transcript of every conversation, with English translations and a tutor chat for asking about it afterwards.
 
 ## Local development
 
@@ -28,11 +29,12 @@ Add your OpenAI and Supabase credentials to `.env.local`, then open [http://loca
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `OPENAI_API_KEY` | Yes | Creates Realtime sessions and transcript translations from the server. |
+| `OPENAI_API_KEY` | Yes | Creates Realtime sessions, transcript translations, and transcript chat replies from the server. |
 | `OPENAI_REALTIME_MODEL` | No | Defaults to `gpt-realtime-2.1`. |
 | `OPENAI_REALTIME_VOICE` | No | Defaults to `marin`. |
 | `OPENAI_TRANSCRIPTION_MODEL` | No | Defaults to `gpt-4o-mini-transcribe` for user transcripts. |
 | `OPENAI_TRANSLATION_MODEL` | No | Defaults to `gpt-4o-mini` for English transcript translations. |
+| `OPENAI_TRANSCRIPT_CHAT_MODEL` | No | Defaults to `gpt-4o` for the transcript question-and-answer chat. |
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL used for session sync. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes | Browser-safe Supabase publishable key. |
 
@@ -46,6 +48,6 @@ Completed conversation transcripts and their English translations are cached loc
 
 ## Security
 
-The current `/api/session` and `/api/translate` endpoints have no user authentication or rate limiting. The deployed app is suitable for personal testing, but those controls should be added before sharing it broadly because calls consume the configured OpenAI account's balance. The `practice_sessions` table is likewise open: anyone with the app URL can read and write transcripts. That matches the personal-use posture above and should change before sharing the app.
+The current `/api/session`, `/api/translate`, and `/api/transcript-chat` endpoints have no user authentication or rate limiting. The deployed app is suitable for personal testing, but those controls should be added before sharing it broadly because calls consume the configured OpenAI account's balance. The `practice_sessions` table is likewise open: anyone with the app URL can read and write transcripts. That matches the personal-use posture above and should change before sharing the app.
 
 The Realtime implementation follows the [official OpenAI WebRTC guide](https://developers.openai.com/api/docs/guides/realtime-webrtc).

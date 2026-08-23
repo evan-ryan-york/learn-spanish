@@ -16,6 +16,7 @@ import {
 } from "../session-history";
 import { parseSpanishLevel } from "../spanish-level";
 import { getSupabaseBrowserClient } from "../supabase";
+import TranscriptChat, { type TranscriptChatMessage } from "../transcript-chat";
 
 type SessionState = "idle" | "connecting" | "connected" | "error";
 type SyncState = "syncing" | "synced" | "error" | "unavailable";
@@ -51,6 +52,7 @@ export default function Restaurant({
   const [status, setStatus] = useState(statusCopy.idle);
   const [pastSessions, setPastSessions] = useState<PracticeSession[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [chats, setChats] = useState<Record<string, TranscriptChatMessage[]>>({});
   const [syncState, setSyncState] = useState<SyncState>("syncing");
   const [translationFailures, setTranslationFailures] = useState<Set<string>>(
     () => new Set(),
@@ -62,6 +64,13 @@ export default function Restaurant({
   const currentSessionRef = useRef<DraftPracticeSession | null>(null);
   const translationRequestsRef = useRef<Set<string>>(new Set());
   const syncingRef = useRef(false);
+
+  const updateSessionChat = useCallback(
+    (sessionId: string, messages: TranscriptChatMessage[]) => {
+      setChats((currentChats) => ({ ...currentChats, [sessionId]: messages }));
+    },
+    [],
+  );
 
   const addPendingTurn = useCallback((role: TranscriptRole, id?: string) => {
     currentSessionRef.current?.turns.push({
@@ -574,6 +583,12 @@ export default function Restaurant({
                           </li>
                         ))}
                       </ol>
+
+                      <TranscriptChat
+                        session={selectedSession}
+                        messages={chats[selectedSession.id] ?? EMPTY_CHAT}
+                        onMessagesChange={updateSessionChat}
+                      />
                     </article>
                   ) : null}
                 </li>
@@ -590,6 +605,8 @@ export default function Restaurant({
     </main>
   );
 }
+
+const EMPTY_CHAT: TranscriptChatMessage[] = [];
 
 function createId(prefix: string) {
   const uniquePart =
