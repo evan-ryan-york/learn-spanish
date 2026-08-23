@@ -12,6 +12,7 @@ export type TranscriptTurn = {
 
 export type PracticeSession = {
   id: string;
+  ownerId?: string;
   scenario: string;
   level: SpanishLevel;
   startedAt: string;
@@ -30,6 +31,7 @@ function isPracticeSession(value: unknown): value is PracticeSession {
 
   return (
     typeof candidate.id === "string" &&
+    (candidate.ownerId === undefined || typeof candidate.ownerId === "string") &&
     typeof candidate.scenario === "string" &&
     Number.isInteger(candidate.level) &&
     candidate.level! >= 1 &&
@@ -63,9 +65,18 @@ function readAllSessions(): PracticeSession[] {
   }
 }
 
-export function loadPracticeSessions(scenario: string): PracticeSession[] {
+export function loadPracticeSessions(
+  scenario: string,
+  ownerId: string | null = null,
+): PracticeSession[] {
   return readAllSessions()
-    .filter((session) => session.scenario === scenario)
+    .filter(
+      (session) =>
+        session.scenario === scenario &&
+        (ownerId
+          ? session.ownerId === undefined || session.ownerId === ownerId
+          : session.ownerId === undefined),
+    )
     .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt));
 }
 
@@ -81,5 +92,35 @@ export function savePracticeSession(session: PracticeSession): PracticeSession[]
     // Keep the newly completed session visible in memory if storage is unavailable.
   }
 
-  return nextSessions.filter((savedSession) => savedSession.scenario === session.scenario);
+  return nextSessions
+    .filter(
+      (savedSession) =>
+        savedSession.scenario === session.scenario &&
+        savedSession.ownerId === session.ownerId,
+    )
+    .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt));
+}
+
+export function replacePracticeSessions(
+  scenario: string,
+  ownerId: string,
+  sessions: PracticeSession[],
+) {
+  const untouchedSessions = readAllSessions().filter(
+    (session) =>
+      session.scenario !== scenario ||
+      (session.ownerId !== undefined && session.ownerId !== ownerId),
+  );
+  const ownedSessions = sessions.map((session) => ({ ...session, ownerId }));
+  const nextSessions = [...ownedSessions, ...untouchedSessions];
+
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSessions));
+  } catch {
+    // Keep the cloud sessions visible in memory if storage is unavailable.
+  }
+
+  return ownedSessions.sort(
+    (a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt),
+  );
 }

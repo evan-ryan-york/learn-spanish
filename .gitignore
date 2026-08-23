@@ -13,3 +13,6 @@ out
 *.p12
 *.pfx
 .npmrc
+
+# Supabase CLI scratch
+supabase/.temp

@@ -533,6 +533,105 @@ h1 em {
   font-size: 0.76rem;
 }
 
+.session-sync {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(38, 53, 44, 0.1);
+  border-radius: 1.2rem;
+  background: rgba(251, 248, 240, 0.72);
+  box-shadow: 0 0.75rem 2rem rgba(55, 68, 58, 0.04);
+}
+
+.session-sync-form {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.session-sync-form > label {
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.session-sync-form > div {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.session-sync-form input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.72rem 0.8rem;
+  border: 1px solid rgba(38, 53, 44, 0.14);
+  border-radius: 0.75rem;
+  color: var(--ink);
+  background: var(--cream);
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.session-sync-form input:focus-visible {
+  outline: 2px solid var(--sage-dark);
+  outline-offset: 1px;
+}
+
+.session-sync-form button,
+.session-sync-account button {
+  min-height: 2.65rem;
+  padding: 0.65rem 0.85rem;
+  border: 0;
+  border-radius: 0.75rem;
+  color: white;
+  background: var(--ink);
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.session-sync-form p {
+  min-height: 1rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.65rem;
+  line-height: 1.45;
+}
+
+.session-sync-account {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.session-sync-account > span:nth-child(2) {
+  flex: 1;
+}
+
+.session-sync-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--sage-dark);
+}
+
+.session-sync-dot--syncing {
+  animation: sync-pulse 900ms ease-in-out infinite alternate;
+}
+
+.session-sync-dot--error {
+  background: var(--coral-dark);
+}
+
+@keyframes sync-pulse {
+  to {
+    opacity: 0.35;
+  }
+}
+
 .session-history-empty {
   padding: 1.35rem;
   border: 1px dashed rgba(38, 53, 44, 0.15);
