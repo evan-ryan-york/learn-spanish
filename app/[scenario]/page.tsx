@@ -15,6 +15,7 @@ import {
   type PracticeSession,
   type TranscriptRole,
 } from "../session-history";
+import { saveCloudPhrase, saveSavedPhrase } from "../phrases";
 import { findScenario } from "../scenarios";
 import { parseSpanishLevel } from "../spanish-level";
 import { getSupabaseBrowserClient } from "../supabase";
@@ -27,7 +28,15 @@ type RealtimeMessage = {
   type?: string;
   item_id?: string;
   transcript?: string;
-  response?: { id?: string };
+  response?: {
+    id?: string;
+    output?: Array<{
+      type?: string;
+      name?: string;
+      call_id?: string;
+      arguments?: string;
+    }>;
+  };
 };
 
 type TranslationResponse = {
@@ -283,6 +292,39 @@ export default function ScenarioPractice({
     setStatus("Hasta la próxima.");
   }, [finalizeSession, releaseConnection]);
 
+  const savePhraseFromCall = useCallback(
+    (rawArguments: string | undefined) => {
+      try {
+        const { spanish, english } = JSON.parse(rawArguments ?? "{}") as {
+          spanish?: unknown;
+          english?: unknown;
+        };
+        if (typeof spanish !== "string" || !spanish.trim()) return false;
+
+        const phrase = {
+          id: createId("phrase"),
+          spanish: spanish.trim(),
+          english: typeof english === "string" ? english.trim() : "",
+          scenario: scenarioKey,
+          createdAt: new Date().toISOString(),
+        };
+        saveSavedPhrase(phrase);
+
+        const client = getSupabaseBrowserClient();
+        if (client) {
+          void saveCloudPhrase(client, phrase).catch((error) => {
+            console.error("Saved phrase cloud save error:", error);
+          });
+        }
+
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [scenarioKey],
+  );
+
   const startConversation = useCallback(async () => {
     if (sessionState === "connecting" || sessionState === "connected") return;
 
@@ -389,7 +431,34 @@ export default function ScenarioPractice({
           ) {
             setStatus("Hablando…");
           } else if (message.type === "response.done") {
-            setStatus("Tu turno.");
+            const phraseCalls = (message.response?.output ?? []).filter(
+              (item) => item.type === "function_call" && item.name === "save_phrase",
+            );
+
+            if (phraseCalls.length === 0) {
+              setStatus("Tu turno.");
+              return;
+            }
+
+            // A tool-call response has no speech; drop its empty transcript turn.
+            completePendingTurn("assistant", undefined);
+
+            for (const call of phraseCalls) {
+              const saved = savePhraseFromCall(call.arguments);
+              dataChannel.send(
+                JSON.stringify({
+                  type: "conversation.item.create",
+                  item: {
+                    type: "function_call_output",
+                    call_id: call.call_id,
+                    output: JSON.stringify(saved ? { saved: true } : { saved: false }),
+                  },
+                }),
+              );
+            }
+
+            dataChannel.send(JSON.stringify({ type: "response.create" }));
+            setStatus("Frase guardada.");
           } else if (message.type === "error") {
             setStatus("Algo salió mal. Termina e inténtalo de nuevo.");
           }
@@ -435,6 +504,7 @@ export default function ScenarioPractice({
     finalizeSession,
     level,
     releaseConnection,
+    savePhraseFromCall,
     scenario,
     scenarioKey,
     sessionState,
@@ -472,9 +542,14 @@ export default function ScenarioPractice({
         <Link className="brand" href="/" aria-label="Rato, inicio">
           rato<span>.</span>
         </Link>
-        <div className="locale-pill">
-          <span aria-hidden="true">🇲🇽</span>
-          Español de México
+        <div className="topbar-actions">
+          <Link className="locale-pill phrases-link" href="/frases">
+            Mis frases
+          </Link>
+          <div className="locale-pill">
+            <span aria-hidden="true">🇲🇽</span>
+            Español de México
+          </div>
         </div>
       </header>
 
@@ -513,7 +588,8 @@ export default function ScenarioPractice({
 
         <p className="english-hint" lang="en">
           Stuck? Say <strong>“Let’s pause and switch to English”</strong> to ask questions,
-          then <strong>“Let’s resume”</strong> to go back to Spanish.
+          <strong>“Add that to my phrases”</strong> to save one, then{" "}
+          <strong>“Let’s resume”</strong> to go back to Spanish.
         </p>
       </section>
 

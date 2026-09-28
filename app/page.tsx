@@ -11,9 +11,14 @@ export default function Home() {
         <Link className="brand" href="/" aria-label="Rato, inicio">
           rato<span>.</span>
         </Link>
-        <div className="locale-pill">
-          <span aria-hidden="true">🇲🇽</span>
-          Español de México
+        <div className="topbar-actions">
+          <Link className="locale-pill phrases-link" href="/frases">
+            Mis frases
+          </Link>
+          <div className="locale-pill">
+            <span aria-hidden="true">🇲🇽</span>
+            Español de México
+          </div>
         </div>
       </header>
 

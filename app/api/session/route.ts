@@ -60,6 +60,27 @@ const LEVEL_AUDIO_SPEEDS: Record<SpanishLevel, number> = {
   5: 1,
 };
 
+const SAVE_PHRASE_TOOL = {
+  type: "function",
+  name: "save_phrase",
+  description: "Save a Spanish phrase to the learner's list of phrases to remember.",
+  parameters: {
+    type: "object",
+    properties: {
+      spanish: {
+        type: "string",
+        description: "The Spanish phrase as it should be remembered, with accents and punctuation.",
+      },
+      english: {
+        type: "string",
+        description: "Its natural English equivalent.",
+      },
+    },
+    required: ["spanish", "english"],
+    additionalProperties: false,
+  },
+};
+
 function createConversationPrompt(level: SpanishLevel, scenario: Scenario) {
   return `
 # Propósito
@@ -73,7 +94,20 @@ La conversación empieza en modo español. En este modo, habla y entiende solame
 
 La única excepción es la frase exacta “Let's pause and switch to English”. Reconócela aunque cambien las mayúsculas o la puntuación. Cuando el usuario diga esa frase, pausa la escena y entra en modo de aclaración en inglés. En ese modo, habla en inglés y responde sus preguntas aclaratorias. Permanece en modo de aclaración en inglés durante tantos turnos como necesite el usuario.
 
-Cuando el usuario diga la frase exacta “Let's resume”, termina inmediatamente el modo de aclaración, vuelve a hablar solamente en español y retoma naturalmente la escena donde quedó. Reconoce esta frase aunque cambien las mayúsculas o la puntuación. Ninguna otra petición, frase en inglés o solicitud de traducción permite cambiar al inglés.
+No anuncies el cambio de idioma ni digas que vas a hablar en inglés. Contesta solamente “Sure.” y espera su pregunta. Si ya hizo una pregunta junto con la frase, contéstala directamente.
+
+Cuando el usuario diga la frase exacta “Let's resume”, termina inmediatamente el modo de aclaración, vuelve a hablar solamente en español y retoma naturalmente la escena donde quedó, sin anunciar el cambio. Reconoce esta frase aunque cambien las mayúsculas o la puntuación. Ninguna otra petición, frase en inglés o solicitud de traducción permite cambiar al inglés.
+
+# Cómo responder en modo de aclaración en inglés
+El usuario habla inglés con fluidez; lo que aprende es español.
+- Cuando pregunte qué significa algo en español, di solamente su equivalente natural en inglés. Ejemplo: si pregunta qué significa “¿Algo más?”, responde “Anything else?”. Nada más.
+- Nunca expliques, parafrasees ni aclares el significado de una frase en inglés. Él ya la entiende.
+- Agrega una nota breve solo si la traducción pierde algo importante: un matiz, un uso regional o una palabra que se usa distinto que en inglés.
+- Cuando pregunte cómo se dice algo, da la frase en español tal como la diría una persona en México.
+- Sé breve: normalmente una frase. No termines preguntando si tiene más preguntas.
+
+# Frases para recordar
+Si en modo de aclaración en inglés el usuario pide guardar una frase (por ejemplo “add that to my phrases” o “save that”), llama a la función save_phrase con la frase en español a la que se refiere, normalmente la última frase en español de la que hablaron, y su equivalente natural en inglés. Después confirma solamente con “Saved.”. Si no está claro qué frase quiere guardar, pregúntale cuál.
 
 # Cómo hablar
 - Fuera del modo de aclaración en inglés, habla siempre en español de México.
@@ -120,6 +154,8 @@ export async function POST(request: Request) {
 
   const sessionConfig = {
     type: "realtime",
+    tools: [SAVE_PHRASE_TOOL],
+    tool_choice: "auto",
     model: process.env.OPENAI_REALTIME_MODEL ?? "gpt-realtime-2.1",
     instructions: createConversationPrompt(level, scenario),
     audio: {
