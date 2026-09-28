@@ -128,11 +128,11 @@ a {
   text-align: center;
 }
 
-.restaurant-shell {
+.practice-shell {
   grid-template-rows: auto auto 1fr auto;
 }
 
-.restaurant-shell .conversation-card {
+.practice-shell .conversation-card {
   margin: 0 auto;
   padding-top: clamp(3rem, 8vh, 5rem);
 }
@@ -151,6 +151,7 @@ a {
   display: grid;
   width: min(100%, 45rem);
   margin-top: clamp(2.2rem, 6vh, 4rem);
+  gap: 1.25rem;
 }
 
 .scenario-link {
@@ -501,6 +502,19 @@ h1 em {
   margin: 0.35rem 0 0;
   color: var(--muted);
   font-size: 0.76rem;
+}
+
+.english-hint {
+  max-width: 22rem;
+  margin: 1rem auto 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.english-hint strong {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .session-history {
@@ -987,7 +1001,7 @@ footer {
 }
 
 @media (max-height: 700px) {
-  .home-shell:not(.restaurant-shell) .conversation-card {
+  .home-shell:not(.practice-shell) .conversation-card {
     padding-top: 1.25rem;
   }
 

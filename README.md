@@ -32,7 +32,7 @@ Add your OpenAI and Supabase credentials to `.env.local`, then open [http://loca
 | `OPENAI_API_KEY` | Yes | Creates Realtime sessions, transcript translations, and transcript chat replies from the server. |
 | `OPENAI_REALTIME_MODEL` | No | Defaults to `gpt-realtime-2.1`. |
 | `OPENAI_REALTIME_VOICE` | No | Defaults to `marin`. |
-| `OPENAI_TRANSCRIPTION_MODEL` | No | Defaults to `gpt-4o-mini-transcribe` for user transcripts. |
+| `OPENAI_TRANSCRIPTION_MODEL` | No | Defaults to `gpt-4o-transcribe` for user transcripts. |
 | `OPENAI_TRANSLATION_MODEL` | No | Defaults to `gpt-4o-mini` for English transcript translations. |
 | `OPENAI_TRANSCRIPT_CHAT_MODEL` | No | Defaults to `gpt-4o` for the transcript question-and-answer chat. |
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL used for session sync. |

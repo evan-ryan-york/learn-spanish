@@ -75,6 +75,7 @@ export default function TranscriptChat({
         },
         body: JSON.stringify({
           level: session.level,
+          scenario: session.scenario,
           turns: session.turns.map((turn) => ({
             role: turn.role,
             text: turn.text,

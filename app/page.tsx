@@ -1,5 +1,6 @@
 import Link from "next/link";
-import RestaurantScenarioCard from "./restaurant-scenario-card";
+import ScenarioCard from "./scenario-card";
+import { SCENARIOS } from "./scenarios";
 
 export default function Home() {
   return (
@@ -28,7 +29,9 @@ export default function Home() {
         </p>
 
         <div className="scenario-grid">
-          <RestaurantScenarioCard />
+          {SCENARIOS.map((scenario) => (
+            <ScenarioCard key={scenario.key} scenario={scenario} />
+          ))}
         </div>
       </section>
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { findScenario, SCENARIOS, type Scenario } from "../../scenarios";
 import { parseSpanishLevel, type SpanishLevel } from "../../spanish-level";
 
 export const runtime = "nodejs";
@@ -30,7 +31,7 @@ const MAX_TRANSCRIPT_LENGTH = 40_000;
 const MAX_MESSAGES = 40;
 const MAX_MESSAGE_LENGTH = 2_000;
 
-function createTutorPrompt(level: SpanishLevel, transcript: string) {
+function createTutorPrompt(level: SpanishLevel, scenario: Scenario, transcript: string) {
   return `
 # Who you are
 You are a warm, precise Spanish tutor. The learner just finished a spoken practice conversation in Mexican Spanish and is now reviewing the transcript. They ask you questions about it afterwards, in English.
@@ -50,7 +51,7 @@ The conversation ran at level ${level} of 5, where 1 is a near-beginner and 5 is
 - Never claim you heard audio: you only have the transcript below.
 
 # The transcript
-Roles: "Learner" is the person you are helping. "Server" is the café or restaurant worker they practiced with. Lines marked "EN:" are an English translation that was generated afterwards.
+Roles: "Learner" is the person you are helping. "${scenario.partner.label}" is ${scenario.partner.description} they practiced with. Lines marked "EN:" are an English translation that was generated afterwards.
 
 ${transcript}
 `.trim();
@@ -70,6 +71,7 @@ export async function POST(request: Request) {
     turns?: unknown;
     messages?: unknown;
     level?: unknown;
+    scenario?: unknown;
   } | null;
 
   const turns = parseTurns(body?.turns);
@@ -77,6 +79,11 @@ export async function POST(request: Request) {
   const level = parseSpanishLevel(
     typeof body?.level === "number" ? String(body.level) : undefined,
   );
+
+  // Sessions saved before scenarios existed were all restaurant practice.
+  const scenario =
+    findScenario(typeof body?.scenario === "string" ? body.scenario : undefined) ??
+    SCENARIOS[0];
 
   if (!turns || !messages) {
     return NextResponse.json({ error: "La pregunta no es válida." }, { status: 400 });
@@ -92,7 +99,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         model: process.env.OPENAI_TRANSCRIPT_CHAT_MODEL ?? "gpt-4o",
         store: false,
-        instructions: createTutorPrompt(level, formatTranscript(turns)),
+        instructions: createTutorPrompt(level, scenario, formatTranscript(turns, scenario)),
         input: messages.map((message) => ({
           role: message.role,
           content: message.text,
@@ -134,10 +141,10 @@ export async function POST(request: Request) {
   }
 }
 
-function formatTranscript(turns: TranscriptTurnInput[]) {
+function formatTranscript(turns: TranscriptTurnInput[], scenario: Scenario) {
   return turns
     .map((turn, index) => {
-      const speaker = turn.role === "user" ? "Learner" : "Server";
+      const speaker = turn.role === "user" ? "Learner" : scenario.partner.label;
       const translation = turn.translation ? `\n   EN: ${turn.translation}` : "";
 
       return `${index + 1}. ${speaker}: ${turn.text}${translation}`;

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import {
   saveCloudPracticeSession,
@@ -14,6 +15,7 @@ import {
   type PracticeSession,
   type TranscriptRole,
 } from "../session-history";
+import { findScenario } from "../scenarios";
 import { parseSpanishLevel } from "../spanish-level";
 import { getSupabaseBrowserClient } from "../supabase";
 import TranscriptChat, { type TranscriptChatMessage } from "../transcript-chat";
@@ -36,20 +38,22 @@ type TranslationResponse = {
   error?: string;
 };
 
-const statusCopy: Record<Exclude<SessionState, "error">, string> = {
-  idle: "Cuando quieras, entramos.",
-  connecting: "Preparando el restaurante…",
-  connected: "Te escucho.",
-};
+const IDLE_STATUS = "Cuando quieras, entramos.";
 
-export default function Restaurant({
+export default function ScenarioPractice({
+  params,
   searchParams,
 }: {
+  params: Promise<{ scenario: string }>;
   searchParams: Promise<{ level?: string | string[] }>;
 }) {
+  const scenario = findScenario(use(params).scenario);
+  if (!scenario) notFound();
+
+  const scenarioKey = scenario.key;
   const level = parseSpanishLevel(use(searchParams).level);
   const [sessionState, setSessionState] = useState<SessionState>("idle");
-  const [status, setStatus] = useState(statusCopy.idle);
+  const [status, setStatus] = useState(IDLE_STATUS);
   const [pastSessions, setPastSessions] = useState<PracticeSession[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [chats, setChats] = useState<Record<string, TranscriptChatMessage[]>>({});
@@ -238,22 +242,22 @@ export default function Restaurant({
     setSyncState("syncing");
 
     try {
-      const localSessions = loadPracticeSessions("restaurant");
+      const localSessions = loadPracticeSessions(scenarioKey);
       const cloudSessions = await syncPracticeSessions(
         client,
-        "restaurant",
+        scenarioKey,
         localSessions,
       );
-      setPastSessions(replacePracticeSessions("restaurant", cloudSessions));
+      setPastSessions(replacePracticeSessions(scenarioKey, cloudSessions));
       setSyncState("synced");
     } catch (error) {
       console.error("Practice session sync error:", error);
-      setPastSessions(loadPracticeSessions("restaurant"));
+      setPastSessions(loadPracticeSessions(scenarioKey));
       setSyncState("error");
     } finally {
       syncingRef.current = false;
     }
-  }, []);
+  }, [scenarioKey]);
 
   const releaseConnection = useCallback(() => {
     dataChannelRef.current?.close();
@@ -283,10 +287,10 @@ export default function Restaurant({
     if (sessionState === "connecting" || sessionState === "connected") return;
 
     setSessionState("connecting");
-    setStatus(statusCopy.connecting);
+    setStatus(scenario.connectingStatus);
     currentSessionRef.current = {
       id: createId("session"),
-      scenario: "restaurant",
+      scenario: scenarioKey,
       level,
       startedAt: new Date().toISOString(),
       turns: [],
@@ -351,7 +355,7 @@ export default function Restaurant({
             type: "response.create",
             response: {
               instructions:
-                `Empieza ya como una persona que trabaja en un café mexicano. Saluda brevemente y pregunta si el pedido es para comer aquí o para llevar. Mantén exactamente el ritmo y la complejidad del nivel ${level} configurado para la sesión.`,
+                `${scenario.opening} Mantén exactamente el ritmo y la complejidad del nivel ${level} configurado para la sesión.`,
             },
           }),
         );
@@ -397,7 +401,7 @@ export default function Restaurant({
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
 
-      const response = await fetch(`/api/session?level=${level}`, {
+      const response = await fetch(`/api/session?scenario=${scenarioKey}&level=${level}`, {
         method: "POST",
         body: offer.sdp,
         headers: {
@@ -431,6 +435,8 @@ export default function Restaurant({
     finalizeSession,
     level,
     releaseConnection,
+    scenario,
+    scenarioKey,
     sessionState,
   ]);
 
@@ -438,7 +444,7 @@ export default function Restaurant({
     const client = getSupabaseBrowserClient();
 
     if (!client) {
-      setPastSessions(loadPracticeSessions("restaurant"));
+      setPastSessions(loadPracticeSessions(scenarioKey));
       setSyncState("unavailable");
       return;
     }
@@ -459,7 +465,7 @@ export default function Restaurant({
   const selectedSession = pastSessions.find((session) => session.id === selectedSessionId);
 
   return (
-    <main className="home-shell restaurant-shell notranslate" translate="no">
+    <main className="home-shell practice-shell notranslate" translate="no">
       <div className="grain" aria-hidden="true" />
 
       <header className="topbar">
@@ -476,15 +482,13 @@ export default function Restaurant({
         <Link className="back-link" href="/">
           ← Escenarios
         </Link>
-        <div className="eyebrow">EN EL RESTAURANTE · NIVEL {level}</div>
+        <div className="eyebrow">{scenario.eyebrow} · NIVEL {level}</div>
         <h1 id="page-title">
-          Tu mesa está
+          {scenario.headline[0]}
           <br />
-          <em>lista.</em>
+          <em>{scenario.headline[1]}</em>
         </h1>
-        <p className="intro">
-          Entra al café y habla con quien te atiende. La conversación seguirá tu dirección.
-        </p>
+        <p className="intro">{scenario.intro}</p>
 
         <div className={`voice-stage voice-stage--${sessionState}`}>
           <span className="voice-ring voice-ring--outer" aria-hidden="true" />
@@ -506,6 +510,11 @@ export default function Restaurant({
           </p>
           <p className="session-status">{status}</p>
         </div>
+
+        <p className="english-hint" lang="en">
+          Stuck? Say <strong>“Let’s pause and switch to English”</strong> to ask questions,
+          then <strong>“Let’s resume”</strong> to go back to Spanish.
+        </p>
       </section>
 
       <section className="session-history" aria-labelledby="session-history-title">
