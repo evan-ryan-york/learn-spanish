@@ -11,9 +11,10 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Rato",
   },
+  // iOS ignores SVG home-screen icons, so Apple gets a full-bleed PNG.
   icons: {
     icon: "/icon.svg",
-    apple: "/icon.svg",
+    apple: { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
   },
   other: {
     google: "notranslate",
