@@ -43,6 +43,7 @@ a {
   min-height: 100dvh;
   grid-template-rows: auto 1fr auto;
   overflow-x: hidden;
+  overflow-x: clip;
   padding:
     max(22px, env(safe-area-inset-top))
     max(22px, env(safe-area-inset-right))
